@@ -26,20 +26,28 @@
                                       (first keyword))))))
 
 (defn encode [keyword message]
-  (map
-        (fn [keyword-char message-char]
-          (encode-char keyword-char message-char))
-        (expand-keyword keyword)
-        message))
+  (apply str (map
+              (fn [keyword-char message-char]
+                (encode-char keyword-char message-char))
+              (take (count message) (expand-keyword keyword))
+              message)))
 
 (defn decode [keyword message]
-  (map
-        (fn [keyword-char message-char]
-          (decode-char keyword-char message-char))
-        (expand-keyword keyword)
-        message))
+  (apply str (map
+              (fn [keyword-char message-char]
+                (decode-char keyword-char message-char))
+              (take (count message) (expand-keyword keyword))
+              message)))
+
+(defn decypher [original-message encoded-message]
+  (first (drop-while (fn [candidate-letter]
+                       (not= (str encoded-char)
+                             (encode-char candidate-letter
+                                          original-char)))
+                     (map num-to-char (range 26)))))
 
 (encode "scones" "meetmebythetree")
 
 (decode "scones" "egsgqwtahuiljgs")
 
+(decypher "meetmebythetree" "egsgqwtahuiljgs")
