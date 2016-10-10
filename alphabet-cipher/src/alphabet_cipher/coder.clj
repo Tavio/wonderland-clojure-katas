@@ -1,7 +1,5 @@
 (ns alphabet-cipher.coder)
 
-(def max-num 26)
-
 (defn num-to-char [num]
   (char (+ 97 num)))
 
@@ -9,32 +7,18 @@
   (- (int (first  (clojure.string/lower-case (str c)))) 97))
 
 (defn generate-column [start-num]
-  (reduce (fn [column num]
-            (conj column (str (clojure.string/lower-case
-                               (num-to-char (mod (+ start-num num) max-num))))))
-          []
-          (range max-num)))
+  (cons (str (num-to-char start-num))
+        (lazy-seq (generate-column (mod (inc start-num) 26)))))
 
-(def table
-  (reduce (fn [table num]
-            (assoc table
-                   num
-                   (generate-column num)))
-            {}
-            (range max-num)))
+(defn encode-char [keyword-char message-char]
+  (first
+   (drop (char-to-num keyword-char)
+         (generate-column (char-to-num message-char)))))
 
-(defn encode-char [column row]
-  (get (get table (char-to-num column)) (char-to-num row)))
-
-(defn index-of [coll item]
-  (let [pos (count (take-while #(not= item %) coll))]
-    (if (< pos (count coll))
-      pos
-      nil)))
-
-(defn decode-char [column encoded-char]
-  (num-to-char (index-of (get table (char-to-num column))
-                         (str encoded-char))))
+(defn decode-char [keyword-char message-char]
+  (num-to-char (count
+                (take-while (fn [encoded-char] (not= (str message-char) encoded-char))
+                            (generate-column (char-to-num keyword-char))))))
 
 (defn expand-keyword [keyword]
   (cons (first keyword)
@@ -42,28 +26,20 @@
                                       (first keyword))))))
 
 (defn encode [keyword message]
-  (let [expanded-keyword (take (count message) (expand-keyword keyword))]
-    (loop [remaining-keyword expanded-keyword
-           remaining-message message
-           encoded-message ""]
-      (if (empty? remaining-message)
-        encoded-message
-        (recur (rest remaining-keyword)
-               (rest remaining-message)
-               (str encoded-message
-                    (encode-char (first remaining-keyword) (first remaining-message))))))))
+  (map
+        (fn [keyword-char message-char]
+          (encode-char keyword-char message-char))
+        (expand-keyword keyword)
+        message))
 
 (defn decode [keyword message]
-  (let [expanded-keyword (take (count message) (expand-keyword keyword))]
-    (loop [remaining-keyword expanded-keyword
-           remaining-message message
-           decoded-message ""]
-      (if (empty? remaining-message)
-        decoded-message
-        (recur (rest remaining-keyword)
-               (rest remaining-message)
-               (str decoded-message
-                    (decode-char (first remaining-keyword) (first remaining-message))))))))
+  (map
+        (fn [keyword-char message-char]
+          (decode-char keyword-char message-char))
+        (expand-keyword keyword)
+        message))
 
-(defn decipher [cipher message]
-  "decypherme")
+(encode "scones" "meetmebythetree")
+
+(decode "scones" "egsgqwtahuiljgs")
+
